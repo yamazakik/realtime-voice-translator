@@ -4,10 +4,6 @@ run = "npm install && npm run dev"
 [nix]
 channel = "stable-24_05"
 
-[[ports]]
-localPort = 5173
-externalPort = 80
-
 [deployment]
 run = ["sh", "-c", "npm install && npm run dev"]
 
@@ -26,3 +22,7 @@ args = "npm install"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npm run dev"
+
+[[ports]]
+localPort = 5175
+externalPort = 80
