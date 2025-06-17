@@ -1,11 +1,15 @@
 modules = ["nodejs-20", "web"]
-run = "npm installnpm run dev"
+run = "npm install && npm run dev"
 
 [nix]
 channel = "stable-24_05"
 
+[[ports]]
+localPort = 5173
+externalPort = 80
+
 [deployment]
-run = ["sh", "-c", "npm installnpm run dev"]
+run = ["sh", "-c", "npm install && npm run dev"]
 
 [workflows]
 runButton = "Start Development Server"
