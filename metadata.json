@@ -1,0 +1,8 @@
+{
+  "requestFramePermissions": [
+    "microphone"
+  ],
+  "name": "Copy of Real-time Voice Translator",
+  "description": "",
+  "prompt": ""
+}
