@@ -13,8 +13,12 @@ export default defineConfig(({ mode }) => {
         port: 5000,
         strictPort: true,
         allowedHosts: 'all',
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+        },
         hmr: {
-          clientPort: 443
+          clientPort: 443,
+          host: '0.0.0.0'
         }
       },
       resolve: {
