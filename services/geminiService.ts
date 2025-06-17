@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 
 const API_KEY = process.env.GEMINI_API_KEY;
@@ -8,16 +7,20 @@ let ai: GoogleGenAI | null = null;
 if (API_KEY) {
   ai = new GoogleGenAI({ apiKey: API_KEY });
 } else {
-  console.error("Gemini APIキーが環境変数に設定されていません。process.env.API_KEYを確認してください。");
+  console.error(
+    "Gemini APIキーが環境変数に設定されていません。process.env.API_KEYを確認してください。",
+  );
 }
 
 export async function translateText(
   text: string,
   targetLanguage: string,
-  sourceLanguage: string
+  sourceLanguage: string,
 ): Promise<string> {
   if (!ai) {
-    throw new Error("Gemini APIクライアントが初期化されていません。APIキーを確認してください。");
+    throw new Error(
+      "Gemini APIクライアントが初期化されていません。APIキーを確認してください。",
+    );
   }
   if (!text.trim()) {
     return "";
@@ -27,27 +30,37 @@ export async function translateText(
 
   try {
     const response: GenerateContentResponse = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-preview-04-17', // Corrected model name
-        contents: prompt,
+      //model: 'gemini-2.5-flash-preview-04-17', // Corrected model name
+      model: "gemini-2.5-flash-preview-05-20",
+      contents: prompt,
     });
-    
+
     const translatedText = response.text;
 
-    if (typeof translatedText !== 'string') {
-        throw new Error("翻訳APIから予期しない形式のレスポンスを受け取りました。");
+    if (typeof translatedText !== "string") {
+      throw new Error(
+        "翻訳APIから予期しない形式のレスポンスを受け取りました。",
+      );
     }
-    
-    return translatedText.trim();
 
+    return translatedText.trim();
   } catch (error: any) {
     console.error("Gemini APIエラー:", error);
     let errorMessage = `翻訳APIエラー: ${error.message || "不明なエラー"}`;
-    if (error.message && error.message.toLowerCase().includes("api key not valid")) {
-        errorMessage = "Gemini APIキーが無効のようです。設定を確認してください。";
+    if (
+      error.message &&
+      error.message.toLowerCase().includes("api key not valid")
+    ) {
+      errorMessage = "Gemini APIキーが無効のようです。設定を確認してください。";
     } else if (error.message && error.message.toLowerCase().includes("quota")) {
-        errorMessage = "Gemini APIの利用制限を超過しました。しばらく待ってから再試行してください。";
-    } else if (error.message && error.message.toLowerCase().includes("candidate was blocked")) {
-        errorMessage = "翻訳リクエストがコンテンツポリシーによりブロックされました。入力内容を確認してください。";
+      errorMessage =
+        "Gemini APIの利用制限を超過しました。しばらく待ってから再試行してください。";
+    } else if (
+      error.message &&
+      error.message.toLowerCase().includes("candidate was blocked")
+    ) {
+      errorMessage =
+        "翻訳リクエストがコンテンツポリシーによりブロックされました。入力内容を確認してください。";
     }
     throw new Error(errorMessage);
   }
