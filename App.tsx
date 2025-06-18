@@ -2,6 +2,8 @@ import React, { useState, useRef, useCallback, useEffect } from "react";
 import { Button } from "./components/Button";
 import { TextAreaDisplay } from "./components/TextAreaDisplay";
 import { Spinner } from "./components/Spinner";
+import { ModelSelector } from "./components/ModelSelector";
+import { ModelManager } from "./components/ModelManager";
 import { translateText } from "./services/geminiService";
 
 // SpeechRecognition API type definitions
@@ -193,6 +195,10 @@ const App: React.FC = () => {
 
   const [textAreaHeight, setTextAreaHeight] = useState<number>(256);
   const [fontSize, setFontSize] = useState<number>(16);
+  
+  // AIモデル管理用のstate
+  const [selectedModelId, setSelectedModelId] = useState<string>('gemini-default');
+  const [isModelManagerOpen, setIsModelManagerOpen] = useState<boolean>(false);
 
   const increaseHeight = () =>
     setTextAreaHeight((h) => Math.min(MAX_TEXT_AREA_HEIGHT, h + HEIGHT_STEP));
@@ -455,58 +461,68 @@ const App: React.FC = () => {
           </div>
         )}
 
-        <div className="w-full max-w-2xl flex flex-col sm:flex-row justify-around items-center space-y-4 sm:space-y-0 sm:space-x-2 my-2 p-4 bg-slate-800/60 rounded-lg shadow-lg">
-          <div className="flex items-center space-x-2">
-            <span className="text-slate-300 font-medium text-sm">
-              表示枠の高さ:
-            </span>
-            <Button
-              onClick={decreaseHeight}
-              className="p-1.5"
-              aria-label="表示枠を縮小"
-              disabled={textAreaHeight <= MIN_TEXT_AREA_HEIGHT}
-              variant="secondary"
-            >
-              <MinusIcon />
-            </Button>
-            <span className="text-slate-200 w-12 text-center text-sm tabular-nums">
-              {Math.round(textAreaHeight / 16)} rem
-            </span>
-            <Button
-              onClick={increaseHeight}
-              className="p-1.5"
-              aria-label="表示枠を拡大"
-              disabled={textAreaHeight >= MAX_TEXT_AREA_HEIGHT}
-              variant="secondary"
-            >
-              <PlusIcon />
-            </Button>
+        <div className="w-full max-w-4xl flex flex-col space-y-4">
+          <div className="flex justify-center">
+            <ModelSelector 
+              selectedModelId={selectedModelId}
+              onModelChange={setSelectedModelId}
+              onModelManage={() => setIsModelManagerOpen(true)}
+            />
           </div>
-          <div className="flex items-center space-x-2">
-            <span className="text-slate-300 font-medium text-sm">
-              文字の大きさ:
-            </span>
-            <Button
-              onClick={decreaseFontSize}
-              className="p-1.5"
-              aria-label="文字を縮小"
-              disabled={fontSize <= MIN_FONT_SIZE}
-              variant="secondary"
-            >
-              <MinusIcon />
-            </Button>
-            <span className="text-slate-200 w-12 text-center text-sm tabular-nums">
-              {fontSize}px
-            </span>
-            <Button
-              onClick={increaseFontSize}
-              className="p-1.5"
-              aria-label="文字を拡大"
-              disabled={fontSize >= MAX_FONT_SIZE}
-              variant="secondary"
-            >
-              <PlusIcon />
-            </Button>
+          
+          <div className="max-w-2xl mx-auto flex flex-col sm:flex-row justify-around items-center space-y-4 sm:space-y-0 sm:space-x-2 p-4 bg-slate-800/60 rounded-lg shadow-lg">
+            <div className="flex items-center space-x-2">
+              <span className="text-slate-300 font-medium text-sm">
+                表示枠の高さ:
+              </span>
+              <Button
+                onClick={decreaseHeight}
+                className="p-1.5"
+                aria-label="表示枠を縮小"
+                disabled={textAreaHeight <= MIN_TEXT_AREA_HEIGHT}
+                variant="secondary"
+              >
+                <MinusIcon />
+              </Button>
+              <span className="text-slate-200 w-12 text-center text-sm tabular-nums">
+                {Math.round(textAreaHeight / 16)} rem
+              </span>
+              <Button
+                onClick={increaseHeight}
+                className="p-1.5"
+                aria-label="表示枠を拡大"
+                disabled={textAreaHeight >= MAX_TEXT_AREA_HEIGHT}
+                variant="secondary"
+              >
+                <PlusIcon />
+              </Button>
+            </div>
+            <div className="flex items-center space-x-2">
+              <span className="text-slate-300 font-medium text-sm">
+                文字の大きさ:
+              </span>
+              <Button
+                onClick={decreaseFontSize}
+                className="p-1.5"
+                aria-label="文字を縮小"
+                disabled={fontSize <= MIN_FONT_SIZE}
+                variant="secondary"
+              >
+                <MinusIcon />
+              </Button>
+              <span className="text-slate-200 w-12 text-center text-sm tabular-nums">
+                {fontSize}px
+              </span>
+              <Button
+                onClick={increaseFontSize}
+                className="p-1.5"
+                aria-label="文字を拡大"
+                disabled={fontSize >= MAX_FONT_SIZE}
+                variant="secondary"
+              >
+                <PlusIcon />
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -533,6 +549,23 @@ const App: React.FC = () => {
           </div>
         </div>
       </main>
+      
+      <ModelManager 
+        isOpen={isModelManagerOpen}
+        onClose={() => setIsModelManagerOpen(false)}
+        onModelUpdate={() => {
+          // モデル一覧が更新された場合の処理
+          const savedModels = localStorage.getItem('aiModels');
+          if (savedModels) {
+            const models = JSON.parse(savedModels);
+            // 現在選択中のモデルが削除された場合、最初のモデルを選択
+            if (!models.find((m: any) => m.id === selectedModelId)) {
+              setSelectedModelId(models[0]?.id || 'gemini-default');
+            }
+          }
+        }}
+      />
+      
       <footer className="w-full max-w-4xl text-center text-slate-500 mt-12 pb-8">
         <p>
           &copy; {new Date().getFullYear()} 音声翻訳アプリ. Powered by Gemini
