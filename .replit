@@ -5,7 +5,8 @@ run = "npm install && npm run dev"
 channel = "stable-24_05"
 
 [deployment]
-run = ["sh", "-c", "npm install && npm run dev"]
+deploymentTarget = "static"
+publicDir = "dist"
 
 [workflows]
 runButton = "Start Development Server"
