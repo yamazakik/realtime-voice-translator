@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Button } from './components/Button';
 import { TextAreaDisplay } from './components/TextAreaDisplay';
@@ -166,7 +165,7 @@ const App: React.FC = () => {
       }
       return;
     }
-    
+
     lastSubmittedTextForTranslationRef.current = textToTranslate;
     setIsLoadingTranslation(true);
     setError(null); // Clear previous errors before new attempt
@@ -265,7 +264,7 @@ const App: React.FC = () => {
       }
       const fullFinalTranscriptForTranslation = currentSessionFinalTranscriptRef.current.trim();
       const textToTranslate = (fullFinalTranscriptForTranslation + (trimmedInterim ? (fullFinalTranscriptForTranslation ? ' ' : '') + trimmedInterim : '')).trim();
-      
+
       if (textToTranslate) {
         triggerTranslationDebounced(textToTranslate);
       } else {
