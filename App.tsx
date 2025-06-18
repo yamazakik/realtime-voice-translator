@@ -344,7 +344,7 @@ const App: React.FC = () => {
             icon={isListening ? <StopIcon className="mr-2" /> : <MicIcon className="mr-2" />}
             disabled={isListening && isLoadingTranslation && !interimTranscript} // Allow stopping even if loading, unless actively transcribing
           >
-            {isListening ? (isLoadingTranslation ? '翻訳中...' : '録音停止') : '録音開始'}
+            {isListening ? (isLoadingTranslation ? '翻訳中...' : '録音停止') : '翻訳開始'}
           </Button>
         </div>
 
