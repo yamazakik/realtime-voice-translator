@@ -22,7 +22,7 @@ export async function translateText(
   if (savedModels) {
     models = JSON.parse(savedModels);
   } else {
-    // デフォルトモデル
+    // デフォルトモデルを作成（ReplitのSecretsのAPIキーを使用）
     models = [{
       id: 'gemini-default',
       name: 'Gemini Flash (デフォルト)',
@@ -30,12 +30,24 @@ export async function translateText(
       modelName: 'gemini-2.5-flash-preview-05-20',
       provider: 'gemini'
     }];
+    // デフォルトモデルをローカルストレージに保存
+    localStorage.setItem('aiModels', JSON.stringify(models));
   }
 
   const selectedModel = models.find(m => m.id === selectedModelId) || models[0];
   
   if (!selectedModel) {
     throw new Error("利用可能なAIモデルが設定されていません。");
+  }
+
+  // APIキーの優先順位：ユーザー設定 > ReplitのSecrets > エラー
+  let effectiveApiKey = selectedModel.apiKey;
+  if (!effectiveApiKey && selectedModel.provider === 'gemini') {
+    effectiveApiKey = DEFAULT_API_KEY;
+  }
+  
+  if (!effectiveApiKey) {
+    throw new Error(`${selectedModel.provider === 'gemini' ? 'Gemini' : selectedModel.provider} APIキーが設定されていません。モデル管理画面で設定するか、ReplitのSecretsにGEMINI_API_KEYを設定してください。`);
   }
 
   const prompt = `あなたはプロの翻訳家です。以下の${sourceLanguage}のテキストを${targetLanguage}に翻訳してください。翻訳結果の${targetLanguage}のテキストのみを返してください。説明、前置き、後書き、またはその他の会話的な要素は一切含めないでください。\n\n${sourceLanguage}テキスト:\n${text}`;
@@ -70,11 +82,14 @@ export async function translateText(
 }
 
 async function translateWithGemini(model: AIModel, prompt: string): Promise<string> {
-  if (!model.apiKey) {
+  // APIキーの優先順位：ユーザー設定 > ReplitのSecrets
+  const apiKey = model.apiKey || DEFAULT_API_KEY;
+  
+  if (!apiKey) {
     throw new Error("Gemini APIキーが設定されていません。");
   }
 
-  const ai = new GoogleGenAI({ apiKey: model.apiKey });
+  const ai = new GoogleGenAI({ apiKey });
   const response: GenerateContentResponse = await ai.models.generateContent({
     model: model.modelName,
     contents: prompt,

@@ -113,7 +113,13 @@ export const ModelManager: React.FC<ModelManagerProps> = ({ isOpen, onClose, onM
                     <h4 className="font-semibold text-slate-100">{model.name}</h4>
                     <p className="text-sm text-slate-300">プロバイダー: {model.provider}</p>
                     <p className="text-sm text-slate-300">モデル: {model.modelName}</p>
-                    <p className="text-sm text-slate-400">APIキー: {model.apiKey ? '設定済み' : '未設定'}</p>
+                    <p className="text-sm text-slate-400">
+                      APIキー: {
+                        model.apiKey ? '設定済み' : 
+                        (model.provider === 'gemini' && model.id === 'gemini-default') ? 'Replit Secretsを使用' : 
+                        '未設定'
+                      }
+                    </p>
                   </div>
                   <div className="flex space-x-2">
                     <Button 

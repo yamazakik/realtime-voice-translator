@@ -35,12 +35,12 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
     if (savedModels) {
       setModels(JSON.parse(savedModels));
     } else {
-      // デフォルトモデル
+      // デフォルトモデル（ReplitのSecretsのAPIキーを参照）
       const defaultModels: AIModel[] = [
         {
           id: 'gemini-default',
-          name: 'Gemini Flash (デフォルト)',
-          apiKey: '',
+          name: 'Gemini Flash (Replit Secrets)',
+          apiKey: '',  // 空文字でも、ReplitのSecretsから取得される
           modelName: 'gemini-2.5-flash-preview-05-20',
           provider: 'gemini'
         }
