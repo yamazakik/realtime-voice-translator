@@ -183,6 +183,8 @@ const App: React.FC = () => {
   const currentSessionFinalTranscriptRef = useRef<string>("");
   const lastSubmittedTextForTranslationRef = useRef<string>("");
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isManualStopRef = useRef<boolean>(false);
+  const restartTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [displayedJapaneseSegments, setDisplayedJapaneseSegments] = useState<
     string[]
@@ -295,17 +297,20 @@ const App: React.FC = () => {
     setError(null);
     currentSessionFinalTranscriptRef.current = "";
     lastSubmittedTextForTranslationRef.current = "";
+    isManualStopRef.current = false;
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    if (restartTimeoutRef.current) clearTimeout(restartTimeoutRef.current);
 
-    const SpeechRecognitionAPI =
-      window.SpeechRecognition || window.webkitSpeechRecognition;
-    recognitionRef.current = new SpeechRecognitionAPI();
-    const recognition = recognitionRef.current;
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.lang = "ja-JP";
+    const startRecognition = () => {
+      const SpeechRecognitionAPI =
+        window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognitionRef.current = new SpeechRecognitionAPI();
+      const recognition = recognitionRef.current;
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = "ja-JP";
 
-    recognition.onstart = () => setIsListening(true);
+      recognition.onstart = () => setIsListening(true);
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
       let currentInterimFromEvent = "";
@@ -351,47 +356,78 @@ const App: React.FC = () => {
     };
 
     recognition.onend = () => {
-      setIsListening(false);
       setInterimTranscript(""); // Clear interim transcript on stop
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
         debounceTimerRef.current = null;
       }
-      const finalTranscriptForSession =
-        currentSessionFinalTranscriptRef.current.trim();
-      if (
-        finalTranscriptForSession &&
-        finalTranscriptForSession !== lastSubmittedTextForTranslationRef.current
-      ) {
-        executeTranslation(finalTranscriptForSession);
-      } else if (!finalTranscriptForSession) {
-        setFullEnglishTranslation("");
-        setIsLoadingTranslation(false);
+      
+      // 手動停止でない場合は、音声認識を自動再開
+      if (!isManualStopRef.current) {
+        console.log("音声認識が自動停止しました。1秒後に再開します...");
+        restartTimeoutRef.current = setTimeout(() => {
+          if (!isManualStopRef.current) {
+            startRecognition();
+          }
+        }, 1000);
+      } else {
+        // 手動停止の場合のみリスニング状態を解除
+        setIsListening(false);
+        const finalTranscriptForSession =
+          currentSessionFinalTranscriptRef.current.trim();
+        if (
+          finalTranscriptForSession &&
+          finalTranscriptForSession !== lastSubmittedTextForTranslationRef.current
+        ) {
+          executeTranslation(finalTranscriptForSession);
+        } else if (!finalTranscriptForSession) {
+          setFullEnglishTranslation("");
+          setIsLoadingTranslation(false);
+        }
       }
     };
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-      console.error("音声認識エラー:", event.error, event.message);
-      let errorMessage = `音声認識エラー: ${event.error}.`;
-      if (event.error === "network")
-        errorMessage = "ネットワークエラー。接続を確認してください。";
-      else if (
-        event.error === "not-allowed" ||
-        event.error === "service-not-allowed"
-      )
-        errorMessage = "マイクアクセスが許可されていません。";
-      else if (event.error === "no-speech")
-        errorMessage = "音声が検出されませんでした。";
-      setError(errorMessage);
-      setIsListening(false);
-      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
-      setIsLoadingTranslation(false); // Stop loading if error occurs
-      if (recognitionRef.current) recognitionRef.current.stop();
+        console.error("音声認識エラー:", event.error, event.message);
+        
+        // no-speechエラーの場合は自動再開を試行
+        if (event.error === "no-speech" && !isManualStopRef.current) {
+          console.log("無音状態を検出。音声認識を続行します...");
+          return; // エラー表示せずに自動再開に任せる
+        }
+        
+        let errorMessage = `音声認識エラー: ${event.error}.`;
+        if (event.error === "network")
+          errorMessage = "ネットワークエラー。接続を確認してください。";
+        else if (
+          event.error === "not-allowed" ||
+          event.error === "service-not-allowed"
+        )
+          errorMessage = "マイクアクセスが許可されていません。";
+        else if (event.error === "no-speech")
+          errorMessage = "音声が検出されませんでした。";
+        
+        setError(errorMessage);
+        setIsListening(false);
+        isManualStopRef.current = true; // エラー時は自動再開を停止
+        if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+        if (restartTimeoutRef.current) clearTimeout(restartTimeoutRef.current);
+        setIsLoadingTranslation(false);
+        if (recognitionRef.current) recognitionRef.current.stop();
+      };
+      
+      recognition.start();
     };
-    recognition.start();
-  }, [executeTranslation, triggerTranslationDebounced]); // Added triggerTranslationDebounced
+
+    startRecognition();
+  }, [executeTranslation, triggerTranslationDebounced]);
 
   const handleStopListening = useCallback(() => {
+    isManualStopRef.current = true; // 手動停止フラグを設定
+    if (restartTimeoutRef.current) {
+      clearTimeout(restartTimeoutRef.current);
+      restartTimeoutRef.current = null;
+    }
     if (recognitionRef.current) {
       recognitionRef.current.stop(); // This will trigger 'onend'
     }
@@ -400,8 +436,10 @@ const App: React.FC = () => {
 
   useEffect(() => {
     return () => {
+      isManualStopRef.current = true;
       if (recognitionRef.current) recognitionRef.current.abort();
       if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+      if (restartTimeoutRef.current) clearTimeout(restartTimeoutRef.current);
     };
   }, []);
 
